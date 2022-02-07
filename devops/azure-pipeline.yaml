@@ -98,7 +98,7 @@ stages:
         displayName: Pack
         inputs:
           command: pack
-          packagesToPack: '**/Kapelli.DataHub.Common.csproj'
+          packagesToPack: '**/JUST.net.csproj'
           nobuild: false
           includesymbols: true
           includesource: true
