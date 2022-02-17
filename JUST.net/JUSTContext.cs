@@ -2,6 +2,7 @@
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 
 namespace JUST
@@ -12,17 +13,19 @@ namespace JUST
         public string Namespace { get; set; }
         public string MethodName { get; set; }
         public string MethodAlias { get; set; }
+        public bool VariableParameters { get; set; }
 
         public CustomFunction()
         {
         }
 
-        public CustomFunction(string assemblyName, string namespc, string methodName, string methodAlias = null)
+        public CustomFunction(string assemblyName, string namespc, string methodName, string methodAlias = null, bool variableParameters = false)
         {
             AssemblyName = assemblyName;
             Namespace = namespc;
             MethodName = methodName;
             MethodAlias = methodAlias;
+            VariableParameters = variableParameters;
         }
     }
 
@@ -37,6 +40,7 @@ namespace JUST
     public class JUSTContext
     {
         private Dictionary<string, MethodInfo> _customFunctions = new Dictionary<string, MethodInfo>();
+        private List<string> _variableParametersCustomFunctions = new List<string>();
         private int _defaultDecimalPlaces = 28;
 
         internal JToken Input;
@@ -85,10 +89,10 @@ namespace JUST
 
         public void RegisterCustomFunction(CustomFunction customFunction)
         {
-            RegisterCustomFunction(customFunction.AssemblyName, customFunction.Namespace, customFunction.MethodName, customFunction.MethodAlias);
+            RegisterCustomFunction(customFunction.AssemblyName, customFunction.Namespace, customFunction.MethodName, customFunction.MethodAlias, customFunction.VariableParameters);
         }
 
-        public void RegisterCustomFunction(string assemblyName, string namespc, string methodName, string methodAlias = null)
+        public void RegisterCustomFunction(string assemblyName, string namespc, string methodName, string methodAlias = null, bool variableParameters = false)
         {
             var methodInfo = ReflectionHelper.SearchCustomFunction(assemblyName, namespc, methodName);
             if (methodInfo == null)
@@ -97,6 +101,8 @@ namespace JUST
             }
 
             _customFunctions.Add(methodAlias ?? methodName, methodInfo);
+            if (variableParameters)
+                _variableParametersCustomFunctions.Add(methodAlias ?? methodName);
         }
 
         public void UnregisterCustomFunction(string aliasOrName)
@@ -128,6 +134,11 @@ namespace JUST
             T instance = Activator.CreateInstance<T>();
             instance.Token = token;
             return instance;
+        }
+
+        public IEnumerable<string> GetVariableParameterCustomFunctions()
+        {
+            return _variableParametersCustomFunctions;
         }
     }
 }

@@ -15,7 +15,7 @@ namespace JUST
         }
     }
 
-    public class JsonTransformer<T> : Transformer<T> where T: ISelectableToken
+    public class JsonTransformer<T> : Transformer<T> where T : ISelectableToken
     {
         public JsonTransformer(JUSTContext context = null) : base(context)
         {
@@ -63,7 +63,8 @@ namespace JUST
         public JArray Transform(JArray transformerArray, JToken input)
         {
             var result = new JArray();
-            for (int i = 0; i < transformerArray.Count; i++) {
+            for (int i = 0; i < transformerArray.Count; i++)
+            {
                 var transformer = transformerArray[i];
                 if (transformer.Type == JTokenType.Object)
                 {
@@ -89,7 +90,7 @@ namespace JUST
                 { "root", transformer }
             };
             Transform(tmp, input);
-            return tmp["root"];   
+            return tmp["root"];
         }
 
         public JObject Transform(JObject transformer, string input)
@@ -261,7 +262,7 @@ namespace JUST
                         }
                         else
                         {
-                            foreach(JProperty property in copyChildren)
+                            foreach (JProperty property in copyChildren)
                             {
                                 parent.Add(property.Name, property.Value);
                             }
@@ -413,7 +414,7 @@ namespace JUST
             var previousAlias = "root";
             args[0] = (string)ParseFunction(args[0], parentArray, currentArrayToken);
             string alias = args.Length > 1 ? (string)ParseFunction(args[1].Trim(), parentArray, currentArrayToken) : $"loop{++_loopCounter}";
-            
+
             if (args.Length > 2)
             {
                 previousAlias = (string)ParseFunction(args[2].Trim(), parentArray, currentArrayToken);
@@ -523,7 +524,7 @@ namespace JUST
 
             if (loopProperties == null)
                 loopProperties = new List<string>();
-            
+
             loopProperties.Add(propertyName);
             _loopCounter--;
         }
@@ -577,8 +578,8 @@ namespace JUST
         {
             object functionResult = ParseFunction(arguments, parentArray, currentArrayToken);
 
-            object val = property.Value.Type == JTokenType.String ? 
-                ParseFunction(property.Value.Value<string>(), parentArray, currentArrayToken) : 
+            object val = property.Value.Type == JTokenType.String ?
+                ParseFunction(property.Value.Value<string>(), parentArray, currentArrayToken) :
                 property.Value;
             JProperty clonedProperty = new JProperty(functionResult.ToString(), val);
 
@@ -811,6 +812,10 @@ namespace JUST
                     {
                         convertParameters = false;
                     }
+                    if (Context.GetVariableParameterCustomFunctions().Contains(functionName))
+                    {
+                        convertParameters = false;
+                    }
 
                     if (new[] { "currentvalue", "currentindex", "lastindex", "lastvalue" }.Contains(functionName))
                     {
@@ -840,7 +845,10 @@ namespace JUST
                     else if (Context?.IsRegisteredCustomFunction(functionName) ?? false)
                     {
                         var methodInfo = Context.GetCustomMethod(functionName);
-                        output = ReflectionHelper.InvokeCustomMethod<T>(methodInfo, parameters, convertParameters, Context);
+                        var variableParameters = Context.GetVariableParameterCustomFunctions().Contains(functionName);
+                        object[] oParams = new object[1];
+                        oParams[0] = parameters;
+                        output = ReflectionHelper.InvokeCustomMethod<T>(methodInfo, variableParameters?oParams:parameters, convertParameters, Context);
                     }
                     else if (Regex.IsMatch(functionName, ReflectionHelper.EXTERNAL_ASSEMBLY_REGEX))
                     {
@@ -937,7 +945,11 @@ namespace JUST
 
             className = className + "," + dllName;
 
-            return ReflectionHelper.Caller<T>(null, className, functionName, customParameters, true, Context);
+            var variableParameters = Context.GetVariableParameterCustomFunctions().Contains(functionName);
+            object[] oParams = new object[1];
+            oParams[0] = parameters;
+
+            return ReflectionHelper.Caller<T>(null, className, functionName, variableParameters ? oParams : customParameters, variableParameters ? false : true, Context);
 
         }
         #endregion
